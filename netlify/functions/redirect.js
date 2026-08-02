@@ -12,7 +12,7 @@ export const handler = async (event) => {
       return { statusCode: 404, body: 'No short code given.' };
     }
 
-    const store = getStore('links');
+    const store = getStore({ name: 'links', consistency: 'strong' });
     const raw = await store.get(code);
 
     if (!raw) {
