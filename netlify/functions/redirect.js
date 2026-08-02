@@ -12,8 +12,18 @@ export const handler = async (event) => {
       return { statusCode: 404, body: 'No short code given.' };
     }
 
-    const store = getStore({ name: 'links', consistency: 'strong' });
-    const raw = await store.get(code);
+    const store = getStore('links');
+
+    // A link created a split second ago may not be visible yet under
+    // default (eventual) consistency. A couple of quick retries covers
+    // that gap without needing the "strong" consistency mode, which
+    // isn't available in this function's execution context.
+    let raw = null;
+    for (let i = 0; i < 4; i++) {
+      raw = await store.get(code);
+      if (raw) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
 
     if (!raw) {
       return {

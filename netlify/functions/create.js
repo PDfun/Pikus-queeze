@@ -33,7 +33,7 @@ export const handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Please provide a valid http(s) URL' }) };
     }
 
-    const store = getStore({ name: 'links', consistency: 'strong' });
+    const store = getStore('links');
 
     // Generate a code, retrying on the rare collision.
     let code;
