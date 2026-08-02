@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pikus Squeeze — your own link shortener</title>
+<meta name="description" content="Shorten unlimited links on your own domain, free, no sign-up.">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;700;800&display=swap');
+
+  :root{
+    --ink:#15171A; --ink-2:#1F2226; --paper:#ECEAE2;
+    --line: rgba(236,234,226,0.12); --line-strong: rgba(236,234,226,0.24);
+    --teal:#2BB7A6; --teal-dim: rgba(43,183,166,0.15);
+    --amber:#E7A64C; --danger:#D9695A; --muted:#8A8D85;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--paper);font-family:'Manrope',sans-serif;min-height:100vh;padding:48px 20px 80px;}
+  .wrap{max-width:640px;margin:0 auto;}
+  .brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .brand .left{display:flex;align-items:center;gap:10px;}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;color:#08221E;font-size:15px;flex-shrink:0;}
+  .brand .name{font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:0.06em;color:var(--muted);}
+  .brand .name b{color:var(--paper);}
+  .gear{border:1px solid var(--line-strong);background:transparent;color:var(--paper);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:15px;}
+  .gear:hover{background:rgba(236,234,226,0.06);}
+
+  h1{font-weight:800;font-size:34px;line-height:1.1;margin:0 0 12px;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:15px;line-height:1.6;margin:0 0 28px;max-width:48ch;}
+
+  .panel{border:1px solid var(--line-strong);border-radius:12px;background:var(--ink-2);padding:18px;margin-bottom:28px;display:none;}
+  .panel.open{display:block;}
+  .panel label{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:12px 0 6px;}
+  .panel label:first-child{margin-top:0;}
+  .panel input{width:100%;background:var(--ink);border:1px solid var(--line-strong);border-radius:8px;color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:13px;padding:10px 12px;outline:none;}
+  .panel input:focus{border-color:var(--teal);}
+  .panel .save{margin-top:14px;border:none;background:var(--teal);color:#08221E;font-weight:700;font-size:13px;padding:10px 16px;border-radius:8px;cursor:pointer;}
+  .panel .hint{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;}
+  .panel .saved-msg{font-size:12px;color:var(--teal);margin-top:8px;display:none;}
+
+  .compressor{position:relative;border:1px solid var(--line-strong);border-radius:14px;background:var(--ink-2);padding:6px;display:flex;gap:6px;}
+  .compressor input{flex:1;background:transparent;border:none;outline:none;color:var(--paper);font-family:'JetBrains Mono',monospace;font-size:14px;padding:14px 14px;min-width:0;}
+  .compressor input::placeholder{color:var(--muted);}
+  .compressor button{border:none;background:var(--teal);color:#08221E;font-weight:700;font-size:14px;padding:0 20px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:transform .12s ease, opacity .12s ease;}
+  .compressor button:hover{opacity:0.9;}
+  .compressor button:active{transform:scale(0.97);}
+  .compressor button:disabled{opacity:0.5;cursor:default;}
+
+  .status{min-height:20px;font-family:'JetBrains Mono',monospace;font-size:12.5px;margin-top:10px;color:var(--muted);}
+  .status.err{color:var(--danger);}
+  .status.ok{color:var(--teal);}
+
+  .result{margin-top:22px;border:1px solid var(--teal);background:var(--teal-dim);border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;animation:squeeze .32s cubic-bezier(.2,.8,.2,1);transform-origin:left center;}
+  @keyframes squeeze{0%{transform:scaleX(0.85);opacity:0;}100%{transform:scaleX(1);opacity:1;}}
+  .result a{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:#B7F0E7;text-decoration:none;word-break:break-all;}
+  .result a:hover{text-decoration:underline;}
+  .copy-btn{border:1px solid var(--line-strong);background:transparent;color:var(--paper);font-size:13px;font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;flex-shrink:0;}
+  .copy-btn:hover{background:rgba(236,234,226,0.06);}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:44px 0 18px;}
+  .divider .label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+  .divider .rule{height:1px;background:var(--line);flex:1;}
+
+  .empty{color:var(--muted);font-size:14px;padding:24px 0;text-align:center;border:1px dashed var(--line-strong);border-radius:12px;}
+  .row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row .num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);width:26px;flex-shrink:0;}
+  .row .main{min-width:0;flex:1;}
+  .row .short{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--amber);text-decoration:none;display:block;}
+  .row .long{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .row .actions{display:flex;gap:6px;flex-shrink:0;}
+  .icon-btn{border:1px solid var(--line-strong);background:transparent;color:var(--paper);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .icon-btn:hover{background:rgba(236,234,226,0.06);}
+  .icon-btn.danger:hover{background:rgba(217,105,90,0.15);border-color:var(--danger);color:var(--danger);}
+
+  .footnote{margin-top:40px;font-size:12.5px;color:var(--muted);line-height:1.6;}
+  footer{margin-top:60px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="left"><div class="mark">P</div><div class="name"><b>Pikus</b> Squeeze</div></div>
+    <button class="gear" id="gearBtn" title="Set your passphrase">⚙</button>
+  </div>
+
+  <div class="panel" id="panel">
+    <label>Passphrase</label>
+    <input id="secretInput" type="password" placeholder="whatever you set as SHORTEN_SECRET" autocomplete="off" />
+    <button class="save" id="saveSettings">Save</button>
+    <span class="saved-msg" id="savedMsg">Saved.</span>
+    <p class="hint">Must match the <code>SHORTEN_SECRET</code> environment variable you set in your Netlify site settings. This just stops random visitors from creating links using your site — it's stored only in this browser.</p>
+  </div>
+
+  <h1>Turn long links into short ones — on your own domain.</h1>
+  <p class="sub">Every short link redirects instantly through your own Netlify site. No third-party shortener, no daily limit, no visible in-between page.</p>
+
+  <form class="compressor" id="form">
+    <input type="url" id="longUrl" placeholder="https://example.com/a/very/long/path?with=params" required autocomplete="off" />
+    <button type="submit" id="submitBtn">Shorten</button>
+  </form>
+  <div class="status" id="status"></div>
+
+  <div id="resultBox"></div>
+
+  <div class="divider"><span class="label">history</span><div class="rule"></div></div>
+  <div id="history"></div>
+
+  <p class="footnote">Links resolve through a serverless function that issues a true HTTP redirect — no page has to load first. History below is stored in this browser as a convenience list.</p>
+
+  <footer>pikus squeeze</footer>
+</div>
+
+<script>
+const SECRET_KEY = 'pikus_secret';
+const HIST_KEY = 'pikus_squeeze_links';
+
+const $ = (id) => document.getElementById(id);
+const gearBtn = $('gearBtn'), panel = $('panel');
+const secretInput = $('secretInput'), saveSettings = $('saveSettings'), savedMsg = $('savedMsg');
+const form = $('form'), input = $('longUrl'), statusEl = $('status'), submitBtn = $('submitBtn');
+const resultBox = $('resultBox'), historyEl = $('history');
+
+let secret = localStorage.getItem(SECRET_KEY) || '';
+secretInput.value = secret;
+if(!secret) panel.classList.add('open');
+
+gearBtn.addEventListener('click', () => panel.classList.toggle('open'));
+saveSettings.addEventListener('click', () => {
+  secret = secretInput.value.trim();
+  localStorage.setItem(SECRET_KEY, secret);
+  savedMsg.style.display = 'inline';
+  setTimeout(()=> savedMsg.style.display = 'none', 2000);
+});
+
+let links = [];
+function loadHistory(){
+  try{ links = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); }catch(e){ links = []; }
+  renderHistory();
+}
+function saveHistory(){ localStorage.setItem(HIST_KEY, JSON.stringify(links)); }
+
+function renderHistory(){
+  if(!links.length){
+    historyEl.innerHTML = '<div class="empty">Nothing shortened yet — your first link will show up here.</div>';
+    return;
+  }
+  historyEl.innerHTML = links.map((l, i) => `
+    <div class="row">
+      <div class="num">${String(links.length - i).padStart(2,'0')}</div>
+      <div class="main">
+        <a class="short" href="${l.short}" target="_blank" rel="noopener">${l.short.replace(/^https?:\/\//,'')}</a>
+        <div class="long">${l.long}</div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn" title="Copy" onclick="copyLink('${l.short}', this)">⧉</button>
+        <button class="icon-btn danger" title="Remove from history" onclick="removeLink(${links.length - 1 - i})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.copyLink = function(url, btn){
+  navigator.clipboard.writeText(url).then(()=>{
+    const old = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(()=>btn.textContent = old, 1000);
+  });
+}
+window.removeLink = function(idx){
+  links.splice(idx,1);
+  saveHistory();
+  renderHistory();
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const longUrl = input.value.trim();
+  if(!longUrl) return;
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Squeezing…';
+  statusEl.textContent = '';
+  statusEl.className = 'status';
+  resultBox.innerHTML = '';
+
+  const t0 = performance.now();
+  try{
+    const res = await fetch('/.netlify/functions/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-shorten-secret': secret },
+      body: JSON.stringify({ url: longUrl })
+    });
+    const json = await res.json();
+    if(!res.ok) throw new Error(json.error || 'Something went wrong');
+
+    const ms = Math.round(performance.now() - t0);
+    links.unshift({ long: longUrl, short: json.shortUrl, date: new Date().toISOString() });
+    saveHistory();
+    renderHistory();
+
+    resultBox.innerHTML = `
+      <div class="result">
+        <a href="${json.shortUrl}" target="_blank" rel="noopener">${json.shortUrl}</a>
+        <button class="copy-btn" onclick="copyLink('${json.shortUrl}', this)">Copy</button>
+      </div>
+    `;
+    input.value = '';
+    statusEl.textContent = `Created in ${ms}ms.`;
+    statusEl.className = 'status ok';
+  }catch(err){
+    statusEl.textContent = err.message || 'Something went wrong.';
+    statusEl.className = 'status err';
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Shorten';
+  }
+});
+
+loadHistory();
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+# Any request that isn't a real file (i.e. a short code like /jxybay) gets
+# handed to the redirect function. Real files (index.html, etc.) are always
+# served directly and never reach this rule.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/redirect/:splat"
+  status = 200
