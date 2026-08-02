@@ -191,8 +191,14 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json', 'x-shorten-secret': secret },
       body: JSON.stringify({ url: longUrl })
     });
-    const json = await res.json();
-    if(!res.ok) throw new Error(json.error || 'Something went wrong');
+
+    let json;
+    try{
+      json = await res.json();
+    }catch(e){
+      throw new Error(`Server returned a non-JSON response (status ${res.status}). The function may not be deployed correctly.`);
+    }
+    if(!res.ok) throw new Error(json.error || `Request failed (status ${res.status})`);
 
     const ms = Math.round(performance.now() - t0);
     links.unshift({ long: longUrl, short: json.shortUrl, date: new Date().toISOString() });
