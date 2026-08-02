@@ -1,4 +1,4 @@
-const { getStore, connectLambda } = require('@netlify/blobs');
+import { getStore, connectLambda } from '@netlify/blobs';
 
 function randCode(len = 6) {
   const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -7,7 +7,7 @@ function randCode(len = 6) {
   return out;
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   try {
     connectLambda(event);
 
